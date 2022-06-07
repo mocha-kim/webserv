@@ -5,24 +5,26 @@
 #include <sys/types.h> 
 #include <sys/wait.h> 
 #include <signal.h>
+#include <fcntl.h>
 #include "Utils.hpp"
 #include "Request.hpp"
 #include "Location.hpp"
 
-
 #define BUFFER_SIZE 100
+
+class ServerManager;
 
 class CgiHandler
 {
 	private:
 		std::map<std::string, std::string> env;
-		FILE *resource_p;
+		int resource_p;
 		std::string file_resource;
 		int pipe_wfd;
 		int pipe_rfd;
 
 	public:
-		CgiHandler(Request &request, Location& loc);
+		CgiHandler(ServerManager &manager, Request &request, Location& loc);
 		char** set_env();
 		int excute_CGI(Request &Request, Location &loc);
 
@@ -43,7 +45,7 @@ class CgiHandler
 		int get_pipe_read_fd(void);
 		void set_pipe_write_fd(int fd);
 		void set_pipe_read_fd(int fd);
-		void load_file_resource(Request& req);
+		void load_file_resource(ServerManager& manager, Request& req);
 		std::string read_from_CGI_process(int timeout_ms);
 		int write_to_CGI_process();
 };

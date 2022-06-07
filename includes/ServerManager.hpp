@@ -11,9 +11,10 @@
 #include "Client.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
-#include "CgiHandler.hpp"
 
 #define CGI_READ_BUFFER_SIZE 64000
+
+class CgiHandler;
 
 class ServerManager
 {
@@ -23,14 +24,15 @@ private:
 	std::map<std::string, Server*> default_servers;
 	std::vector<Client> clients;
 	int max_fd;
-	fd_set reads;
-	fd_set writes;
 
 	std::map<int, std::string> status_info;
 
 	ServerManager();
 
 public:
+	fd_set writes;
+	fd_set reads;
+	
 	ServerManager(std::vector<Server> servers);
 	~ServerManager();
 
@@ -44,9 +46,9 @@ public:
 	void	treat_request();
 	void	print_servers_info();
 
-private:
 	void	add_fd_selectPoll(int fd, fd_set* fds);
 	void	run_selectPoll(fd_set *reads, fd_set *writes);
+private:
 
 	void	get_method(Client &client, std::string path);
 	void	post_method(Client &client, Request &request);
@@ -78,7 +80,7 @@ private:
 	std::string	read_with_timeout(int fd, int timeout_ms);
 	std::string	get_status_cgi(std::string& cgi_ret);
 
-	void	write_file_in_path(Client &client, std::string content, std::string path);
+	int	write_file_in_path(Client &client, std::string content, std::string path);
 };
 
 #endif

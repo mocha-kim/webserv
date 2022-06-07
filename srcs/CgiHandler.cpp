@@ -1,4 +1,5 @@
 #include "../includes/CgiHandler.hpp"
+#include "../includes/ServerManager.hpp"
 
 #define CGI_RESOURCE_BUFFER_SIZE 100
 #define CGI_READ_BUFFER_SIZE 64000
@@ -27,7 +28,7 @@ static void set_signal_kill_child_process(int sig)
     kill(-1,SIGKILL);
 }
 
-CgiHandler::CgiHandler(Request &request, Location& loc)
+CgiHandler::CgiHandler(ServerManager &manager, Request &request, Location& loc)
 {
 	this->env["AUTH_TYPE"] = "";
 	this->env["CONTENT_TYPE"] = request.headers["Content-Type"];
@@ -48,22 +49,36 @@ CgiHandler::CgiHandler(Request &request, Location& loc)
 	this->env["SERVER_PORT"] = request.get_port();
 	this->env["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->env["CONTENT_LENGTH"] = "-1";
-	load_file_resource(request);
+	load_file_resource(manager, request);
 }
 
-void CgiHandler::load_file_resource(Request& req)
+void CgiHandler::load_file_resource(ServerManager &manager, Request& req)
 {
 	if (req.method == "GET")
 	{
-		this->resource_p = fopen(this->env["PATH_TRANSLATED"].c_str(), "rb");
+		this->resource_p = open(this->env["PATH_TRANSLATED"].c_str(), O_RDONLY);
 		char buffer[CGI_RESOURCE_BUFFER_SIZE + 1];
 		memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
 		int r = 1;
-		while ((r = fread(buffer, 1, CGI_RESOURCE_BUFFER_SIZE, this->resource_p)) > 0)
+		while (1)
 		{
+			manager.add_fd_selectPoll(this->resource_p, &(manager.reads));
+			manager.run_selectPoll(&(manager.reads), &(manager.writes));
+			if (FD_ISSET(this->resource_p, &(manager.reads)))
+			{
+				r = read(this->resource_p, buffer, CGI_RESOURCE_BUFFER_SIZE);
+				if (r == 0)
+					break;
+				else if (r == -1)
+				{
+					this->resource_p = -1;
+					break;
+				}
+			}
 			this->file_resource += buffer;
 			memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
 		}
+		FD_ZERO(&(manager.reads));
 		this->env["CONTENT_LENGTH"] = NumberToString(this->file_resource.size());
 	}
 	if (req.method == "POST")
@@ -113,7 +128,7 @@ int CgiHandler::excute_CGI(Request &req, Location &loc)
 	int pid;
 	int ret1 = pipe(read_fd);
 
-	if (ret1 < 0 || pipe(write_fd) < 0 || (req.method == "GET" && !resource_p)) return -1;
+	if (ret1 < 0 || pipe(write_fd) < 0 || (req.method == "GET" && (resource_p < 0))) return -1;
 	signal(SIGALRM, set_signal_kill_child_process);
 	pid = fork();
 	if (pid < 0) return -1;
