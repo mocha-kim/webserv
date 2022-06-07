@@ -13,8 +13,6 @@ void ServerManager::print_servers_info()
 
 bool	ServerManager::is_allowed_method(std::vector<MethodType> allow_methods, std::string method) 
 {
-	if (method == "GET")
-		return true;
 	for (std::vector<MethodType>::iterator it = allow_methods.begin(); 
 	it != allow_methods.end(); it++)
 	{
