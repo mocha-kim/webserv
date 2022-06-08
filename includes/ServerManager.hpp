@@ -38,7 +38,7 @@ public:
 
 	void	wait_to_client();
 	void	accept_sockets();
-	void	drop_client_or_not(Client client, bool is_alive = false);
+	bool	drop_client_or_not(Client client, bool is_alive = false);
 
 	void	create_servers();
 	void	close_servers();

@@ -22,18 +22,20 @@ public:
 	Client(Server *server);
 	~Client();
 	
-	int get_socket() const;
-	int get_received_size() const;
-	timeval get_last_time() const;
-	void set_socket(int value);
-	void set_received_size(int size);
-	void set_last_time_sec(timeval& tv);
+	void	set_socket(int value);
+	void	set_received_size(int size);
+	void	set_last_time_sec(timeval& tv);
+	
+	int		get_socket() const;
+	int		get_received_size() const;
+	timeval	get_last_time() const;
 
 	std::string get_root_path(std::string path);
-	int count_char(std::string str, char c);
-	
 	const char *get_client_address();
 	const char *get_client_port();
+
+	int		count_char(std::string str, char c);
+	void	clear_request();
 };
 
 #endif

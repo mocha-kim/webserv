@@ -100,7 +100,8 @@ bool ServerManager::is_response_timeout(Client& client)
 	static timeval tv;
 	
 	gettimeofday(&tv, NULL);
-	if (tv.tv_sec - client.get_last_time().tv_sec > client.server->recv_timeout.tv_sec) return true;
+	if (tv.tv_sec - client.get_last_time().tv_sec > client.server->recv_timeout.tv_sec)
+		return true;
 	client.set_last_time_sec(tv);
 	return false;
 }

@@ -139,11 +139,11 @@ void ServerManager::accept_sockets()
 	}
 }
 
-void ServerManager::drop_client_or_not(Client client, bool is_alive)
+bool ServerManager::drop_client_or_not(Client client, bool is_alive)
 {
-	std::cout << ">> " << (is_alive ? "alive\n" : "close\n");
+	std::cout << "> Client" << (is_alive ? "keep alive\n" : "closed\n");
 	if (is_alive)
-		return;
+		return false;
 	
 	std::cout << "> Drop Client\n";
 	close(client.get_socket());
@@ -154,7 +154,7 @@ void ServerManager::drop_client_or_not(Client client, bool is_alive)
 		if ((*iter).get_socket() == client.get_socket())
 		{
 			clients.erase(iter);
-			return;
+			return true;
 		}
 	}
 	std::cout << RED "[ERROR] drop_client not found\n" NC;
@@ -174,8 +174,9 @@ void ServerManager::treat_request()
 			if (MAX_REQUEST_SIZE == clients[i].get_received_size())
 			{
 				send_error_page(400, clients[i]);
-				drop_client_or_not(clients[i], is_alive_request(clients[i].request));
-				i--;
+				bool is_dropped = drop_client_or_not(clients[i], is_alive_request(clients[i].request));
+				if (is_dropped)
+					i--;
 				continue;
 			}
 			int r = recv(clients[i].get_socket(), 
@@ -185,12 +186,11 @@ void ServerManager::treat_request()
 			if (clients[i].get_received_size() > MAX_REQUEST_SIZE)
 			{
 				send_error_page(413, clients[i]);
-				drop_client_or_not(clients[i], is_alive_request(clients[i].request));
-				i--;
+				bool is_dropped = drop_client_or_not(clients[i], is_alive_request(clients[i].request));
+				if (is_dropped)
+					i--;
 				continue;
 			}
-			// int recv_size = clients[i].get_received_size();
-			// char *reqt = clients[i].request;
 			if (r < 0)
 			{
 				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "]\n";
@@ -208,14 +208,15 @@ void ServerManager::treat_request()
 			}
 			else if (is_request_done(clients[i].request))
 			{
-				std::cout << BLU "> " << clients[i].request << "\n" NC;
+				// std::cout << BLU "> " << clients[i].request << "\n" NC;
 				Request req = Request(clients[i].get_socket());
 				int error_code;
 				if ((error_code = req.parsing(clients[i].request)))
 				{
 					send_error_page(error_code, clients[i]);
-					drop_client_or_not(clients[i], is_alive_request(&req.headers));
-					i--;
+					bool is_dropped = drop_client_or_not(clients[i], is_alive_request(&req.headers));
+					if (is_dropped)
+						i--;
 					continue;
 				}
 
@@ -235,16 +236,18 @@ void ServerManager::treat_request()
 				{
 					std::cout << " -> not found\n" NC;
 					send_error_page(400, clients[i]);
-					drop_client_or_not(clients[i], is_alive_request(&req.headers));
-					i--;
+					bool is_dropped = drop_client_or_not(clients[i], is_alive_request(&req.headers));
+					if (is_dropped)
+						i--;
 					continue;
 				}
 				if (req.headers.find("Content-Length") != req.headers.end() && 
 				stoi(req.headers["Content-Length"]) > clients[i].server->client_body_limit)
 				{
 					send_error_page(413, clients[i]);
-					drop_client_or_not(clients[i], is_alive_request(&req.headers));
-					i--;
+					bool is_dropped = drop_client_or_not(clients[i], is_alive_request(&req.headers));
+					if (is_dropped)
+						i--;
 					continue;
 				}
 
@@ -256,8 +259,9 @@ void ServerManager::treat_request()
 				if (!is_allowed_method(method_list, req.method))
 				{
 					send_error_page(405, clients[i], &method_list);
-					drop_client_or_not(clients[i], is_alive_request(&req.headers));
-					i--;
+					bool is_dropped = drop_client_or_not(clients[i], is_alive_request(&req.headers));
+					if (is_dropped)
+						i--;
 					continue;
 				}
 				
@@ -287,9 +291,11 @@ void ServerManager::treat_request()
 					else if (req.method == "DELETE")
 						delete_method(clients[i], req.path);
 				}
-				drop_client_or_not(clients[i], is_alive_request(&req.headers));
-				i--;
+				bool is_dropped = drop_client_or_not(clients[i], is_alive_request(&req.headers));
+				if (is_dropped)
+					i--;
 				std::cout << "> Request completed\n";
+				clients[i].clear_request();
 			}
 		}
 	}
