@@ -343,13 +343,11 @@ void ServerManager::get_method(Client &client, std::string path)
 				if (client.server->autoindex)
 				{
 					send_autoindex_page(client, path);
-					fclose(check_fp);
 					return;
 				}
 				else
 				{
 					send_error_page(404, client);
-					fclose(check_fp);
 					return;
 				}
 			}
