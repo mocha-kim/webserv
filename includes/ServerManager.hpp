@@ -38,7 +38,7 @@ public:
 
 	void	wait_to_client();
 	void	accept_sockets();
-	void	drop_client(Client client);
+	void	drop_client_or_not(Client client, bool is_alive = false);
 
 	void	create_servers();
 	void	close_servers();
@@ -48,8 +48,8 @@ public:
 
 	void	add_fd_selectPoll(int fd, fd_set* fds);
 	void	run_selectPoll(fd_set *reads, fd_set *writes);
-private:
 
+private:
 	void	get_method(Client &client, std::string path);
 	void	post_method(Client &client, Request &request);
 	void	delete_method(Client &client, std::string path);
@@ -58,9 +58,9 @@ private:
 	void	send_redirection(Client &client, std::string request_method);
 	void	send_error_page(int code, Client &Client, std::vector<MethodType> *allow_methods = NULL);
 
-	void handle_cgi_GET_response(Response& res, std::string& cgi_ret, Client &client);
-	void handle_cgi_POST_response(Response& res, std::string& cgi_ret, Client &client, Request& request);
-	int send_cgi_response(Client& client, CgiHandler& ch, Request& req);
+	void	handle_cgi_GET_response(Response& res, std::string& cgi_ret, Client &client);
+	void	handle_cgi_POST_response(Response& res, std::string& cgi_ret, Client &client, Request& request);
+	int		send_cgi_response(Client& client, CgiHandler& ch, Request& req);
 	
 	/*
 	** ServerManager_helper
@@ -68,14 +68,16 @@ private:
 
 	bool	is_allowed_method(std::vector<MethodType> allow_methods, std::string method);
 	bool	is_request_done(char *request);
+	bool	is_alive_request(char *request) const;
+	bool	is_alive_request(std::map<std::string, std::string> *headers) const;
 	bool	is_response_timeout(Client& client);
 	bool	is_loc_check(std::string path, Client &client);
 	bool	is_cgi(Request *request, Location *loc);
 
-	std::string	methodtype_to_s(MethodType method);
+	std::string	methodtype_to_s(MethodType method) const;
 
-	const char	*find_content_type(const char *path);
-	std::string	find_path_in_root(std::string path, Client &client);
+	const char	*find_content_type(const char *path) const;
+	std::string	find_path_in_root(std::string path, Client &client) const;
 
 	std::string	read_with_timeout(int fd, int timeout_ms);
 	std::string	get_status_cgi(std::string& cgi_ret);

@@ -33,6 +33,34 @@ bool	ServerManager::is_loc_check(std::string path, Client &client)
 	return false;
 }
 
+bool	ServerManager::is_alive_request(char *request) const
+{	
+	char *body = strstr(request, "\r\n\r\n");
+	if (!body)
+		return false;
+	body += 4;
+
+	char *connection;
+	if ((connection = strnstr(request, "Connection", strlen(request) - strlen(body))))
+	{
+		if (strnstr(connection, "close", strlen(request) - strlen(body)))
+			return false;
+		return true;
+	}
+	return true;
+}
+
+bool	ServerManager::is_alive_request(std::map<std::string, std::string> *headers) const
+{
+	if (headers->find("Connection") != headers->end())
+	{
+		if ((*headers)["Connection"] == "close")
+			return false;
+		return true;
+	}
+	return true;
+}
+
 bool	ServerManager::is_request_done(char *request)
 {
 	char *body = strstr(request, "\r\n\r\n");
@@ -88,7 +116,7 @@ bool	ServerManager::is_cgi(Request *request, Location *loc)
 	return false;
 }
 
-std::string ServerManager::methodtype_to_s(MethodType method)
+std::string ServerManager::methodtype_to_s(MethodType method) const
 {
 	if (method == GET)
 		return "GET";
@@ -99,7 +127,7 @@ std::string ServerManager::methodtype_to_s(MethodType method)
 	return "";
 }
 
-const char *ServerManager::find_content_type(const char *path)
+const char *ServerManager::find_content_type(const char *path) const
 {
 	const char *last_dot = strrchr(path, '.');
 	if (last_dot)
@@ -119,7 +147,7 @@ const char *ServerManager::find_content_type(const char *path)
 	return "text/plain";
 }
 
-std::string ServerManager::find_path_in_root(std::string path, Client &client)
+std::string ServerManager::find_path_in_root(std::string path, Client &client) const
 {
 	std::string full_path = "";
 	std::string location;

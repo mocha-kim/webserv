@@ -92,7 +92,7 @@ void ServerManager::run_selectPoll(fd_set *reads, fd_set *writes)
 	if ((ret = select(this->max_fd + 1, reads, writes, 0, 0)) < 0)
 		exit(1);
 	else if (ret == 0)
-		std::cout << RED "[ERROR] select() timeout.\n" NC;
+		std::cout << RED "[ERROR] select() timeout\n" NC;
 	this->reads = *reads;
 	this->writes = *writes;
 }
@@ -131,7 +131,7 @@ void ServerManager::accept_sockets()
 			client.set_socket(accept(server, (struct sockaddr*)&(client.address), &(client.address_length)));
 			if (client.get_socket() < 0)
 			{
-				std::cout << RED "[ERROR] accept() failed.\n" NC;
+				std::cout << RED "[ERROR] accept() failed\n" NC;
 				exit(1);
 			}
 			std::cout << "> New Connection from [" << client.get_client_address() << "].\n";
@@ -139,11 +139,15 @@ void ServerManager::accept_sockets()
 	}
 }
 
-void ServerManager::drop_client(Client client)
+void ServerManager::drop_client_or_not(Client client, bool is_alive)
 {
+	std::cout << ">> " << (is_alive ? "alive\n" : "close\n");
+	if (is_alive)
+		return;
+	
+	std::cout << "> Drop Client\n";
 	close(client.get_socket());
 
-	std::cout << "> Drop Client\n";
 	std::vector<Client>::iterator iter;
 	for (iter = clients.begin(); iter != clients.end(); iter++)
 	{
@@ -153,7 +157,7 @@ void ServerManager::drop_client(Client client)
 			return;
 		}
 	}
-	std::cout << RED "[ERROR] drop_client not found.\n" NC;
+	std::cout << RED "[ERROR] drop_client not found\n" NC;
 	exit(1);
 }
 
@@ -170,7 +174,7 @@ void ServerManager::treat_request()
 			if (MAX_REQUEST_SIZE == clients[i].get_received_size())
 			{
 				send_error_page(400, clients[i]);
-				drop_client(clients[i]);
+				drop_client_or_not(clients[i], is_alive_request(clients[i].request));
 				i--;
 				continue;
 			}
@@ -181,7 +185,7 @@ void ServerManager::treat_request()
 			if (clients[i].get_received_size() > MAX_REQUEST_SIZE)
 			{
 				send_error_page(413, clients[i]);
-				drop_client(clients[i]);
+				drop_client_or_not(clients[i], is_alive_request(clients[i].request));
 				i--;
 				continue;
 			}
@@ -189,28 +193,28 @@ void ServerManager::treat_request()
 			// char *reqt = clients[i].request;
 			if (r < 0)
 			{
-				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "].\n";
-				std::cout << RED "[ERROR] recv() failed.\n" NC;
+				std::cout << "> Unexpected disconnect from (" << r << ")[" << clients[i].get_client_address() << "]\n";
+				std::cout << RED "[ERROR] recv() failed\n" NC;
 				send_error_page(500, clients[i]);
-				drop_client(clients[i]);
+				drop_client_or_not(clients[i]);
 				i--;
 			}
 			else if (r == 0)
 			{
-				std::cout << "> The connection has been closed. (" << r << ")[" << clients[i].get_client_address() << "].\n";
-				std::cout << RED "[ERROR] recv() failed.\n" NC;
+				std::cout << "> The connection has been closed [" << clients[i].get_client_address() << "]\n";
 				send_error_page(400, clients[i]);
-				drop_client(clients[i]);
+				drop_client_or_not(clients[i]);
 				i--;
 			}
 			else if (is_request_done(clients[i].request))
 			{
+				std::cout << BLU "> " << clients[i].request << "\n" NC;
 				Request req = Request(clients[i].get_socket());
 				int error_code;
 				if ((error_code = req.parsing(clients[i].request)))
 				{
 					send_error_page(error_code, clients[i]);
-					drop_client(clients[i]);
+					drop_client_or_not(clients[i], is_alive_request(&req.headers));
 					i--;
 					continue;
 				}
@@ -231,7 +235,7 @@ void ServerManager::treat_request()
 				{
 					std::cout << " -> not found\n" NC;
 					send_error_page(400, clients[i]);
-					drop_client(clients[i]);
+					drop_client_or_not(clients[i], is_alive_request(&req.headers));
 					i--;
 					continue;
 				}
@@ -239,7 +243,7 @@ void ServerManager::treat_request()
 				stoi(req.headers["Content-Length"]) > clients[i].server->client_body_limit)
 				{
 					send_error_page(413, clients[i]);
-					drop_client(clients[i]);
+					drop_client_or_not(clients[i], is_alive_request(&req.headers));
 					i--;
 					continue;
 				}
@@ -252,7 +256,7 @@ void ServerManager::treat_request()
 				if (!is_allowed_method(method_list, req.method))
 				{
 					send_error_page(405, clients[i], &method_list);
-					drop_client(clients[i]);
+					drop_client_or_not(clients[i], is_alive_request(&req.headers));
 					i--;
 					continue;
 				}
@@ -283,7 +287,7 @@ void ServerManager::treat_request()
 					else if (req.method == "DELETE")
 						delete_method(clients[i], req.path);
 				}
-				drop_client(clients[i]);
+				drop_client_or_not(clients[i], is_alive_request(&req.headers));
 				i--;
 				std::cout << "> Request completed\n";
 			}
@@ -802,7 +806,7 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_write_fd(), &(this->writes)) == 0) 
 	{
-		std::cerr << RED "> [ERROR] writing input to cgi failed.\n" NC;
+		std::cerr << RED ">> [ERROR] writing input to cgi failed.\n" NC;
 		signal(SIGALRM, set_signal_kill_child_process);
 		alarm(30);
 		signal(SIGALRM, SIG_DFL);
@@ -816,7 +820,7 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 	this->run_selectPoll(&(this->reads), &(this->writes));
 	if (FD_ISSET(ch.get_pipe_read_fd(), &(this->reads)) == 0)
 	{
-		std::cerr << RED "> [ERROR] reading from cgi failed.\n" NC;
+		std::cerr << RED ">> [ERROR] reading from cgi failed.\n" NC;
 		signal(SIGALRM, set_signal_kill_child_process);
 		alarm(30);
 		signal(SIGALRM, SIG_DFL);
@@ -829,8 +833,9 @@ int ServerManager::send_cgi_response(Client& client, CgiHandler& ch, Request& re
 		return 500;
 	close(ch.get_pipe_read_fd());
 	close(ch.get_pipe_write_fd());
-	std::cout << "successfully read\n";
-	if (cgi_ret.compare("cgi: failed") == 0) return 400;
+	std::cout << ">> cgi successfully read\n";
+	if (cgi_ret.compare("cgi: failed") == 0)
+		return 400;
 	else
 	{
 		if (req.method == "GET")
