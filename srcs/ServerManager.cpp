@@ -364,7 +364,6 @@ void ServerManager::get_method(Client &client, std::string path)
 		const char *type = find_content_type(full_path.c_str());
 
 		Response response(status_info[200]);
-		response.append_header("Connection", "close");
 		response.append_header("Content-Length", number_to_string(length));
 		response.append_header("Content-Type", type);
 
@@ -502,7 +501,6 @@ void ServerManager::post_method(Client &client, Request &request)
 		code = 204;
 
 	Response response(status_info[code]);
-	response.append_header("Connection", "close");
 	std::string header = response.make_header();
 	int send_ret = send(client.get_socket(), header.c_str(), header.size(), 0);
 	if (send_ret < 0)
@@ -529,7 +527,6 @@ void ServerManager::delete_method(Client &client, std::string path)
 
 	std::remove(full_path.c_str());
 	Response response(status_info[200]);
-	response.append_header("Connection", "close");
 
 	std::string header = response.make_header();
 	int send_ret = send(client.get_socket(), header.c_str(), header.size(), 0);
@@ -576,7 +573,6 @@ void ServerManager::send_autoindex_page(Client &client, std::string path)
 	result += "</div></body></html>";
 
 	Response response(status_info[200]);
-	response.append_header("Connection", "close");
 	response.append_header("Content-Length", number_to_string(result.length()));
 	response.append_header("Content-Type", "text/html");
 	std::string header = response.make_header();
@@ -653,7 +649,6 @@ void ServerManager::send_error_page(int code, Client &client, std::vector<Method
 	else
 		response.make_status_body();
 	
-	response.append_header("Connection", "close");
 	response.append_header("Content-Length", number_to_string(response.get_body_size()));
 	response.append_header("Content-Type", "text/html");
 	if (code == 405)
@@ -694,7 +689,6 @@ void ServerManager::handle_cgi_GET_response(Response& res, std::string& cgi_ret,
 	std::string body;
 
 	res.append_header("Server", client.server->server_name);
-	res.append_header("Connection", "close");
 	while (getline(ss, tmp, '\n'))
 	{
 		if (tmp.length() == 1 && tmp[0] == '\r')
@@ -729,7 +723,6 @@ void ServerManager::handle_cgi_POST_response(Response& res, std::string& cgi_ret
 	std::string body;
 
 	res.append_header("Server", client.server->server_name);
-	res.append_header("Connection", "close");
 	while (getline(ss, tmp, '\n'))
 	{
 		if (tmp.length() == 1 && tmp[0] == '\r')
