@@ -57,6 +57,8 @@ void CgiHandler::load_file_resource(ServerManager &manager, Request& req)
 	if (req.method == "GET")
 	{
 		this->resource_p = open(this->env["PATH_TRANSLATED"].c_str(), O_RDONLY);
+		if (this->resource_p < 0)
+			return;
 		char buffer[CGI_RESOURCE_BUFFER_SIZE + 1];
 		memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
 		int r = 1;
@@ -64,16 +66,23 @@ void CgiHandler::load_file_resource(ServerManager &manager, Request& req)
 		{
 			manager.add_fd_selectPoll(this->resource_p, &(manager.reads));
 			manager.run_selectPoll(&(manager.reads), &(manager.writes));
-			if (FD_ISSET(this->resource_p, &(manager.reads)))
+			if (FD_ISSET(this->resource_p, &(manager.reads)) == 0)
 			{
-				r = read(this->resource_p, buffer, CGI_RESOURCE_BUFFER_SIZE);
-				if (r == 0)
-					break;
-				else if (r == -1)
-				{
-					this->resource_p = -1;
-					break;
-				}
+				close(this->resource_p);
+				this->resource_p = -1;
+				break;
+			}
+			r = read(this->resource_p, buffer, CGI_RESOURCE_BUFFER_SIZE);
+			if (r == 0)
+			{
+				close(this->resource_p);
+				break;
+			}
+			else if (r == -1)
+			{
+				close(this->resource_p);
+				this->resource_p = -1;
+				break;
 			}
 			this->file_resource += buffer;
 			memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);

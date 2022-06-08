@@ -174,18 +174,22 @@ int	ServerManager::write_file_in_path(Client &client, std::string content, std::
 	if (FD_ISSET(write_fd, &(this->writes)) == 0)
 	{
 		send_error_page(500, client);
+		close(write_fd);
 		return -1;
 	}
 	int r = write(write_fd, content.c_str(), content.size());
 	if (r < 0)
 	{	
 		send_error_page(500, client);
+		close(write_fd);
 		return -1;
 	}
 	else if (r == 0)
 	{
 		send_error_page(400, client);
+		close(write_fd);
 		return -1;
 	}
+	close(write_fd);
 	return (0);
 }
