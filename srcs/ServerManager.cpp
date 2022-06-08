@@ -308,12 +308,13 @@ void ServerManager::get_method(Client &client, std::string path)
 	struct stat buf;
 	std::string full_path = find_path_in_root(path, client);
 	lstat(full_path.c_str(), &buf);
-	FILE *fp = fopen(full_path.c_str(), "rb");
-	std::cout << "> " + full_path + ", " + (fp == NULL ? "not found\n" : "found\n");
-	if (!fp)
+	FILE *check_fp = fopen(full_path.c_str(), "rb");
+	std::cout << "> " + full_path + ", " + (check_fp == NULL ? "not found\n" : "found\n");
+	if (!check_fp)
 		send_error_page(404, client);
 	else
 	{
+		fclose(check_fp);
 		if (S_ISDIR(buf.st_mode))
 		{
 			std::cout << "> Current path is directory\n";
@@ -328,10 +329,10 @@ void ServerManager::get_method(Client &client, std::string path)
 				full_path.append("/");
 			for (unsigned long i = 0; i < indexes.size(); i++)
 			{
-				FILE *fp = fopen((full_path + indexes[i]).c_str(), "rb");
-				if (fp)
+				FILE *tmp_fp = fopen((full_path + indexes[i]).c_str(), "rb");
+				if (tmp_fp)
 				{
-					fclose(fp);
+					fclose(tmp_fp);
 					full_path.append(indexes[i]);
 					flag = true;
 					break;
@@ -342,18 +343,17 @@ void ServerManager::get_method(Client &client, std::string path)
 				if (client.server->autoindex)
 				{
 					send_autoindex_page(client, path);
-					fclose(fp);
+					fclose(check_fp);
 					return;
 				}
 				else
 				{
-						send_error_page(404, client);
-						fclose(fp);
-						return;
+					send_error_page(404, client);
+					fclose(check_fp);
+					return;
 				}
 			}
 		}
-		fclose(fp);
 		FILE *fp = fopen(full_path.c_str(), "rb");
 		fseek(fp, 0L, SEEK_END);
 		size_t length = ftell(fp);
@@ -396,11 +396,7 @@ void ServerManager::get_method(Client &client, std::string path)
 		}
 		int r = read(read_fd, buffer, BSIZE);
 		if (r < 0)
-		{
 			send_error_page(500, client);
-			close(read_fd);
-			return;
-		}
 		else
 		{
 			int send_ret_2;
@@ -410,13 +406,11 @@ void ServerManager::get_method(Client &client, std::string path)
 				if (send_ret_2 < 0)
 				{
 					send_error_page(500, client);
-					close(read_fd);
 					break;
 				}
 				else if (send_ret_2 == 0)
 				{
 					send_error_page(400, client);
-					close(read_fd);
 					break;
 				}
 				this->add_fd_selectPoll(read_fd, &(this->reads));
@@ -424,23 +418,19 @@ void ServerManager::get_method(Client &client, std::string path)
 				if (FD_ISSET(read_fd, &(this->reads)) == 0)
 				{
 					send_error_page(400, client);
-					close(read_fd);
-					return;
+					break;
 				}
 				r = read(read_fd, buffer, BSIZE);
 				if (r < 0)
 				{
 					send_error_page(500, client);
-					close(read_fd);
-					return;
+					break;
 				}
 				if (r == 0)
-				{
-					close(read_fd);
-					return;
-				}
+					break;
 			}
 		}
+		close(read_fd);
 	}
 }
 
@@ -481,7 +471,8 @@ void ServerManager::post_method(Client &client, Request &request)
 					end = request.body.find(boundary, begin);
 					if (begin == std::string::npos || end == std::string::npos)
 						break;
-					write_file_in_path(client, request.body.substr(begin, end - begin - 4), full_path + "/" + name);
+					if (write_file_in_path(client, request.body.substr(begin, end - begin - 4), full_path + "/" + name) < 0)
+						return;
 					if (request.body[end + boundary.size()] == '-')
 						break;
 				}
@@ -787,6 +778,7 @@ void ServerManager::handle_cgi_POST_response(Response& res, std::string& cgi_ret
 		close(write_fd);
 		return;
 	}
+
 	int r = write(write_fd, body.c_str(), body.size());
 	if (r < 0)
 	{	

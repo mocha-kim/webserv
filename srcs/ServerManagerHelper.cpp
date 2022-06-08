@@ -191,5 +191,5 @@ int	ServerManager::write_file_in_path(Client &client, std::string content, std::
 		return -1;
 	}
 	close(write_fd);
-	return (0);
+	return 0;
 }
