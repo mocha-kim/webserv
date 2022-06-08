@@ -60,7 +60,7 @@ std::ostream &operator<<(std::ostream &out, const std::map<T1, T2> &op)
 }
 
 template <typename T>
-std::string NumberToString ( T Number )
+std::string number_to_string(T Number)
 {
 	std::ostringstream ss;
 	ss << Number;

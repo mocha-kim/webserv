@@ -88,12 +88,12 @@ void CgiHandler::load_file_resource(ServerManager &manager, Request& req)
 			memset(buffer, 0, CGI_RESOURCE_BUFFER_SIZE + 1);
 		}
 		FD_ZERO(&(manager.reads));
-		this->env["CONTENT_LENGTH"] = NumberToString(this->file_resource.size());
+		this->env["CONTENT_LENGTH"] = number_to_string(this->file_resource.size());
 	}
 	if (req.method == "POST")
 	{
 		this->file_resource = req.body;
-		this->env["CONTENT_LENGTH"] = NumberToString(req.body.size());
+		this->env["CONTENT_LENGTH"] = number_to_string(req.body.size());
 	}
 }
 
