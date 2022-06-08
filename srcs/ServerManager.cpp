@@ -1,4 +1,5 @@
 #include "../includes/ServerManager.hpp"
+#include "../includes/CgiHandler.hpp"
 
 ServerManager::ServerManager(std::vector<Server> servers)
 {
@@ -259,7 +260,7 @@ void ServerManager::treat_request()
 				if (loc && is_cgi(&req, loc))
 				{
 					std::cout << "cgi checked !!!!!!! \n";
-					CgiHandler cgi(req, *loc);
+					CgiHandler cgi(*this, req, *loc);
 					int cgi_ret;
 					int read_fd = cgi.excute_CGI(req, *loc);
 					if (read_fd == -1)
@@ -353,10 +354,11 @@ void ServerManager::get_method(Client &client, std::string path)
 			}
 		}
 		fclose(fp);
-		fp = fopen(full_path.c_str(), "rb");
+		FILE *fp = fopen(full_path.c_str(), "rb");
 		fseek(fp, 0L, SEEK_END);
 		size_t length = ftell(fp);
 		rewind(fp);
+		fclose(fp);
 		const char *type = find_content_type(full_path.c_str());
 
 		Response response(status_info[200]);
@@ -369,36 +371,77 @@ void ServerManager::get_method(Client &client, std::string path)
 		if (send_ret_1 < 0)
 		{
 			send_error_page(500, client, NULL);
-			fclose(fp);
 			return;
 		}
 		else if (send_ret_1 == 0)
 		{
 			send_error_page(400, client, NULL);
-			fclose(fp);
 			return;
 		}
 
 		char buffer[BSIZE];
-		int r = fread(buffer, 1, BSIZE, fp);
-		int send_ret_2;
-		while (r)
+		int read_fd = open(full_path.c_str(), O_RDONLY);
+		if (read_fd < 0)
 		{
-			send_ret_2 = send(client.get_socket(), buffer, r, 0);
-			if (send_ret_2 < 0)
+			send_error_page(500, client);
+			return;
+		}
+		this->add_fd_selectPoll(read_fd, &(this->reads));
+		this->run_selectPoll(&(this->reads), &(this->writes));
+		if (FD_ISSET(read_fd, &(this->reads)) == 0)
+		{
+			send_error_page(400, client);
+			close(read_fd);
+			return;
+		}
+		int r = read(read_fd, buffer, BSIZE);
+		if (r < 0)
+		{
+			send_error_page(500, client);
+			close(read_fd);
+			return;
+		}
+		else
+		{
+			int send_ret_2;
+			while (r)
 			{
-				send_error_page(500, client, NULL);
-				break;
+				send_ret_2 = send(client.get_socket(), buffer, r, 0);
+				if (send_ret_2 < 0)
+				{
+					send_error_page(500, client);
+					close(read_fd);
+					break;
+				}
+				else if (send_ret_2 == 0)
+				{
+					send_error_page(400, client);
+					close(read_fd);
+					break;
+				}
+				this->add_fd_selectPoll(read_fd, &(this->reads));
+				this->run_selectPoll(&(this->reads), &(this->writes));
+				if (FD_ISSET(read_fd, &(this->reads)) == 0)
+				{
+					send_error_page(400, client);
+					close(read_fd);
+					return;
+				}
+				r = read(read_fd, buffer, BSIZE);
+				if (r < 0)
+				{
+					send_error_page(500, client);
+					close(read_fd);
+					return;
+				}
+				if (r == 0)
+				{
+					close(read_fd);
+					return;
+				}
 			}
-			else if (send_ret_2 == 0)
-			{
-				send_error_page(400, client, NULL);
-				break;
-			}
-			r = fread(buffer, 1, BSIZE, fp);
 		}
 	}
-	fclose(fp);
 }
 
 void ServerManager::post_method(Client &client, Request &request)
@@ -456,7 +499,10 @@ void ServerManager::post_method(Client &client, Request &request)
 		}
 	}
 	else
-		write_file_in_path(client, request.body, full_path);
+	{
+		if (write_file_in_path(client, request.body, full_path) < 0)
+			return;
+	}
 
 	int code = 201;
 	if (request.headers["Content-Length"] == "0")
@@ -726,14 +772,35 @@ void ServerManager::handle_cgi_POST_response(Response& res, std::string& cgi_ret
 
 	std::string command = "mkdir -p " + folder_path;
 	system(command.c_str());
-	FILE *fp = fopen(full_path.c_str(), "w");
-	if (!fp)
+	int write_fd = open(full_path.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 0644);
+	if (write_fd < 0)
 	{
 		send_error_page(500, client);
 		return;
 	}
-	fwrite(body.c_str(), body.size(), 1, fp);
-	fclose(fp);
+
+	this->add_fd_selectPoll(write_fd, &(this->writes));
+	this->run_selectPoll(&(this->reads), &(this->writes));
+	if (FD_ISSET(write_fd, &(this->writes)) == 0)
+	{
+		send_error_page(500, client);
+		close(write_fd);
+		return;
+	}
+	int r = write(write_fd, body.c_str(), body.size());
+	if (r < 0)
+	{	
+		send_error_page(500, client);
+		close(write_fd);
+		return;
+	}
+	else if (r == 0)
+	{
+		send_error_page(400, client);
+		close(write_fd);
+		return;
+	}
+	close(write_fd);
 
 	res.append_header("Content-Length", std::to_string(res.get_body_size()));
 }
