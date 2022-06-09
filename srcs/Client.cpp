@@ -4,7 +4,7 @@ Client::Client(Server *server)
 {
 	this->server = server;
 	address_length = sizeof(struct sockaddr_storage);
-	received_size = 0;
+	clear_request();
 	gettimeofday(&last_get_time, NULL);
 	memset(request, 0, MAX_REQUEST_SIZE + 1);
 }
@@ -104,3 +104,10 @@ int Client::count_char(std::string str, char c)
 	}
 	return cnt;
 } 
+
+void Client::clear_request()
+{
+	received_size = 0;
+	for (int i = 0; i < MAX_REQUEST_SIZE; i++)
+		request[i] = '\0';
+}
