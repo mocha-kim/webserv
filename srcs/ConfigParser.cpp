@@ -34,15 +34,15 @@ std::vector<Server> *ConfigParser::parse()
 	std::cout << "> config file parsing start\n";
 	size_t pre = 0;
 	size_t cur = content.find_first_not_of(" \t\n", pre);
+	if (cur == std::string::npos)
+		exit(print_parse_error());
 	while (cur != std::string::npos)
 	{
 		pre = content.find_first_not_of(" \t\n", cur);;
 		cur = content.find_first_of(" \t\n", pre);
 		std::string key = content.substr(pre, cur - pre);
 		if (key != "server")
-		{
 			exit(print_parse_error());
-		}
 		Server server = parse_server(&cur);
 		result->push_back(server);
 	}
