@@ -10,8 +10,8 @@
 class Server
 {
 public:
-	int client_body_limit;
-	bool autoindex;
+	int		client_body_limit;
+	bool	autoindex;
 	std::string root;
 	std::string server_name;
 	std::vector<std::string> index;
@@ -20,7 +20,7 @@ public:
 	
 	std::vector<Location> locations;
 	
-	int redirect_status;
+	int		redirect_status;
 	std::string redirect_url;
 
 	struct timeval send_timeout;
@@ -30,18 +30,18 @@ public:
 	std::string host;
 	std::string port;
 	
-	int listen_socket;
+	int		listen_socket;
 	
 	Server();
 	~Server();
 
-	void create_socket();
-	void print_server_info();
+	void	create_socket();
+	void	print_server_info();
 
-	static MethodType s_to_methodtype(std::string str);
+	static MethodType	s_to_methodtype(std::string str);
 
-	Location* get_cur_location(std::string request_uri) const;
-	bool is_in_location(std::string location_path, std::string request_uri) const;
+	Location*	get_cur_location(std::string request_uri) const;
+	bool	is_in_location(std::string location_path, std::string request_uri) const;
 };
 
 #endif

@@ -22,7 +22,8 @@ std::string Request::get_port()
 
 static bool check_protocol(std::map<std::string, std::string>::mapped_type& parsed)
 {
-	if (parsed != "HTTP/1.1") return false;
+	if (parsed != "HTTP/1.1")
+		return false;
 	return true;
 }
 
@@ -76,7 +77,8 @@ int Request::parsing(std::string request)
 		return 400;
 	path = request.substr(i + 1, j - i - 1);
 	headers["HTTP"] = request.substr(j + 1, request.find_first_of("\r", i) - j - 1);
-	if (check_protocol(headers["HTTP"]) == false) return 505;
+	if (check_protocol(headers["HTTP"]) == false)
+		return 505;
 	i = request.find_first_of("\n", j) + 1;
 	while (i < request.size())
 	{
@@ -86,13 +88,9 @@ int Request::parsing(std::string request)
 		{
 
 			if (strstr(headers["Transfer-Encoding"].c_str(), "chunked") != NULL)
-			{
 				this->body = parse_request_body_chunked(request, i);
-			}
 			else
-			{
 				this->body = parse_request_body(request, i);
-			}
 
 			break;
 		}

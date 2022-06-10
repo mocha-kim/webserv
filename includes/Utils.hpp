@@ -20,12 +20,12 @@
 #define BLU "\e[0;34m"
 #define CYN "\e[0;36m"
 
-int replace(std::string &original, std::string word1, std::string word2);
+int		replace(std::string &original, std::string word1, std::string word2);
 std::string dir_listing();
 std::vector<std::string> split(std::string input, char delimiter);
 std::string get_ip(int client_fd);
 std::string get_current_date_GMT(void);
-size_t StringToHexNumber(std::string input);
+size_t	StringToHexNumber(std::string input);
 
 template<typename T>
 std::ostream &operator<<(std::ostream &out, const std::vector<T> &op)

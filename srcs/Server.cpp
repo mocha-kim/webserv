@@ -98,17 +98,11 @@ void Server::print_server_info()
 MethodType Server::s_to_methodtype(std::string str)
 {
 	if (str == "GET")
-	{
 		return GET;
-	}
 	else if (str == "POST")
-	{
 		return POST;
-	}
 	else if (str == "DELETE")
-	{
 		return DELETE;
-	}
 	return INVALID;
 }
 

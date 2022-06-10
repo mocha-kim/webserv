@@ -106,9 +106,7 @@ std::string CgiHandler::get_target_file_fullpath(Request& req, Location& loc)
 
 	ret += pwd;
 	if (loc_root[0] == '.')
-	{
 		loc_root = loc_root.substr(1);
-	}
 	ret += loc_root;
 	ret += req_path.substr(loc.get_path().size());
 	free(pwd);
@@ -137,10 +135,12 @@ int CgiHandler::excute_CGI(Request &req, Location &loc)
 	int pid;
 	int ret1 = pipe(read_fd);
 
-	if (ret1 < 0 || pipe(write_fd) < 0 || (req.method == "GET" && (resource_p < 0))) return -1;
+	if (ret1 < 0 || pipe(write_fd) < 0 || (req.method == "GET" && (resource_p < 0)))
+		return -1;
 	signal(SIGALRM, set_signal_kill_child_process);
 	pid = fork();
-	if (pid < 0) return -1;
+	if (pid < 0)
+		return -1;
 	else if (pid == 0)
 	{
 		dup2(write_fd[0], STDIN_FILENO);
@@ -154,9 +154,7 @@ int CgiHandler::excute_CGI(Request &req, Location &loc)
 		av[1] = const_cast<char*>(loc.root.c_str());
 		av[2] = NULL;
 		if (env)
-		{
 			ret1 = execve(av[0], av, env);
-		}
 		exit(1);
 	}
 	else
@@ -197,14 +195,11 @@ void CgiHandler::set_pipe_read_fd(int fd)
 std::string CgiHandler::read_from_CGI_process(int timeout_ms)
 {
 	int rbytes = 1;
-	// struct timeval timeout_tv;
 	char buf[CGI_READ_BUFFER_SIZE + 1];
 	memset(buf, 0, CGI_READ_BUFFER_SIZE + 1);
 	std::string ret;
 
 	(void)timeout_ms;
-	// timeout_tv.tv_sec = 0;
-	// timeout_tv.tv_usec = 1000 * timeout_ms;
 	while (rbytes > 0)
 	{
 		rbytes = read(this->get_pipe_read_fd(), buf, CGI_READ_BUFFER_SIZE);
@@ -236,4 +231,3 @@ int CgiHandler::write_to_CGI_process()
 		return wbyte;
 	}
 };
-

@@ -23,15 +23,15 @@ private:
 	std::map<std::string, Server*> servers;
 	std::map<std::string, Server*> default_servers;
 	std::vector<Client> clients;
-	int max_fd;
+	int		max_fd;
 
 	std::map<int, std::string> status_info;
 
 	ServerManager();
 
 public:
-	fd_set writes;
-	fd_set reads;
+	fd_set	writes;
+	fd_set	reads;
 	
 	ServerManager(std::vector<Server> servers);
 	~ServerManager();
@@ -82,7 +82,7 @@ private:
 	std::string	read_with_timeout(int fd, int timeout_ms);
 	std::string	get_status_cgi(std::string& cgi_ret);
 
-	int	write_file_in_path(Client &client, std::string content, std::string path);
+	int		write_file_in_path(Client &client, std::string content, std::string path);
 };
 
 #endif

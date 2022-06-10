@@ -14,8 +14,8 @@ class ConfigParser
 private:
 	std::string content;
 
-	Server parse_server(size_t *i);
-	Location parse_location(size_t *i);
+	Server		parse_server(size_t *i);
+	Location	parse_location(size_t *i);
 
 	int set_server_values(Server *server, const std::string key, const std::string value);
 	int set_location_values(Location *location, const std::string key, const std::string value);
