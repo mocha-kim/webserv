@@ -255,7 +255,12 @@ void ServerManager::treat_request()
 				Location* loc = clients[i].server->get_cur_location(req.get_path());
 				std::vector<MethodType> method_list;
 				method_list = loc ? loc->allow_methods : clients[i].server->allow_methods;
-				if (clients[i].server->redirect_status == -1 && !is_allowed_method(method_list, req.method))
+				if (clients[i].server->redirect_status != -1)
+				{
+					method_list.clear();
+					method_list.push_back(GET);
+				}
+				if (!is_allowed_method(method_list, req.method))
 				{
 					send_error_page(405, clients[i], &method_list);
 					bool is_dropped = drop_client_or_not(clients[i], is_alive_request(&req.headers));
@@ -478,7 +483,7 @@ void ServerManager::post_method(Client &client, Request &request)
 					if (begin == std::string::npos || end == std::string::npos)
 						break;
 					if (write_file_in_path(client, request.body.substr(begin, end - begin - 4), full_path + "/" + name) < 0)
-						return;
+						break;
 					if (request.body[end + boundary.size()] == '-')
 						break;
 				}
@@ -603,7 +608,7 @@ void ServerManager::send_autoindex_page(Client &client, std::string path)
 void ServerManager::send_redirection(Client &client, std::string request_method)
 {
 	(void) request_method;
-	std::cout << ">> send redirection response\n";
+	std::cout << YLW "Redirection\n" NC;
 	Response response(status_info[client.server->redirect_status]);
 	if (client.server->redirect_status == 300)
 		response.make_status_body(client.server->redirect_url);

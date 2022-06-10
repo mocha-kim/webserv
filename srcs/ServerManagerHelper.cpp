@@ -213,12 +213,6 @@ int	ServerManager::write_file_in_path(Client &client, std::string content, std::
 		close(write_fd);
 		return -1;
 	}
-	else if (r == 0)
-	{
-		send_error_page(400, client);
-		close(write_fd);
-		return -1;
-	}
 	close(write_fd);
 	return 0;
 }
