@@ -22,7 +22,7 @@ public:
 	std::string get_root();
 	std::string get_path();
 	static MethodType s_to_methodtype(std::string str);
-	std::string getCgiBinary(std::string &extension);
+	std::string get_cgi_binary(std::string &extension);
 };
 
 #endif

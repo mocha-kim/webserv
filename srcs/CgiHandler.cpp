@@ -150,7 +150,7 @@ int CgiHandler::excute_CGI(Request &req, Location &loc)
 		char **env = set_env();
 		std::string extension = req.get_path().substr(req.get_path().find(".") + 1);
 		char *av[3];
-		av[0] = const_cast<char*>(loc.getCgiBinary(extension).c_str());
+		av[0] = const_cast<char*>(loc.get_cgi_binary(extension).c_str());
 		av[1] = const_cast<char*>(loc.root.c_str());
 		av[2] = NULL;
 		if (env)
