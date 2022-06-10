@@ -141,7 +141,7 @@ void ServerManager::accept_sockets()
 
 bool ServerManager::drop_client_or_not(Client client, bool is_alive)
 {
-	std::cout << "> Client" << (is_alive ? "keep alive\n" : "closed\n");
+	std::cout << "> Client " << (is_alive ? "keep alive\n" : "closed\n");
 	if (is_alive)
 		return false;
 	
@@ -201,8 +201,7 @@ void ServerManager::treat_request()
 			}
 			else if (r == 0)
 			{
-				std::cout << "> The connection has been closed [" << clients[i].get_client_address() << "]\n";
-				send_error_page(400, clients[i]);
+				std::cout << "> Connection has been closed [" << clients[i].get_client_address() << "]\n";
 				drop_client_or_not(clients[i]);
 				i--;
 			}
@@ -256,7 +255,7 @@ void ServerManager::treat_request()
 				Location* loc = clients[i].server->get_cur_location(req.get_path());
 				std::vector<MethodType> method_list;
 				method_list = loc ? loc->allow_methods : clients[i].server->allow_methods;
-				if (!is_allowed_method(method_list, req.method))
+				if (clients[i].server->redirect_status == -1 && !is_allowed_method(method_list, req.method))
 				{
 					send_error_page(405, clients[i], &method_list);
 					bool is_dropped = drop_client_or_not(clients[i], is_alive_request(&req.headers));
